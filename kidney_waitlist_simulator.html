@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ontario Kidney Transplant — Wait-List Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #151821;
+    --surface2: #1c2130;
+    --border: rgba(255,255,255,0.07);
+    --text: #e8eaf0;
+    --muted: #7a8099;
+    --accent: #4f8ef7;
+    --green: #34c98a;
+    --amber: #f5a623;
+    --red: #e8514a;
+    --red-soft: rgba(232,81,74,0.12);
+    --green-soft: rgba(52,201,138,0.12);
+    --accent-soft: rgba(79,142,247,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(79,142,247,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(79,142,247,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+
+  .page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 3rem 2rem 6rem;
+  }
+
+  /* Header */
+  .header {
+    margin-bottom: 3rem;
+    opacity: 0;
+    animation: fadeUp 0.7s ease forwards;
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(28px, 5vw, 44px);
+    line-height: 1.15;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.6;
+    max-width: 560px;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.75rem 2rem;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.7s ease forwards;
+  }
+
+  .card:nth-child(2) { animation-delay: 0.1s; }
+  .card:nth-child(3) { animation-delay: 0.2s; }
+  .card:nth-child(4) { animation-delay: 0.3s; }
+  .card:nth-child(5) { animation-delay: 0.4s; }
+
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1.25rem;
+  }
+
+  /* Sliders section */
+  .sliders-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 600px) {
+    .sliders-grid { grid-template-columns: 1fr; }
+  }
+
+  .slider-block label {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .slider-block label strong {
+    display: block;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .slider-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0 6px;
+  }
+
+  .slider-wrap span {
+    font-size: 11px;
+    color: var(--muted);
+    width: 40px;
+  }
+
+  .slider-wrap span:last-child { text-align: right; }
+
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--surface2);
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+  #cs-slider::-webkit-slider-thumb { background: var(--amber); }
+
+  .val-badge {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* Results grid */
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  @media (max-width: 500px) {
+    .results-grid { grid-template-columns: 1fr; }
+  }
+
+  .result-card {
+    background: var(--surface2);
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid var(--border);
+    transition: border-color 0.3s;
+  }
+
+  .result-card.danger { border-color: rgba(232,81,74,0.4); }
+  .result-card.safe   { border-color: rgba(52,201,138,0.4); }
+
+  .result-city {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .result-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 36px;
+    line-height: 1;
+    margin-bottom: 4px;
+    transition: color 0.3s;
+  }
+
+  .result-num.red    { color: var(--red); }
+  .result-num.amber  { color: var(--amber); }
+  .result-num.green  { color: var(--green); }
+  .result-num.blue   { color: var(--accent); }
+
+  .result-label { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+
+  .bar-track {
+    height: 5px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .bar-red   { background: var(--red); }
+  .bar-amber { background: var(--amber); }
+  .bar-green { background: var(--green); }
+  .bar-blue  { background: var(--accent); }
+
+  /* Formula explainer */
+  .formula-box {
+    background: var(--surface2);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    border-left: 3px solid var(--accent);
+    margin-bottom: 1rem;
+  }
+
+  .formula-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 17px;
+    color: var(--text);
+    line-height: 1.5;
+    margin-bottom: 6px;
+  }
+
+  .formula-sub { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* Amplifier display */
+  .amplifier-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .amp-card {
+    text-align: center;
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 1rem;
+    border: 1px solid var(--border);
+  }
+
+  .amp-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    margin-bottom: 2px;
+    transition: color 0.3s;
+  }
+
+  .amp-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* Context section */
+  .context-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  @media (max-width: 640px) { .context-grid { grid-template-columns: 1fr; } }
+
+  .context-stat {
+    background: var(--surface2);
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid var(--border);
+  }
+
+  .context-stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .context-stat-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 32px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .context-stat-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  .context-prose {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.8;
+    margin-bottom: 1.25rem;
+  }
+
+  .context-prose strong { color: var(--text); font-weight: 500; }
+
+  .context-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.25rem 0;
+  }
+
+  .context-heading {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+
+  .def-block {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    border-left: 3px solid var(--accent);
+  }
+
+  .def-block.amber-border { border-left-color: var(--amber); }
+
+  .def-term {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .def-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* Insight bar */
+  .insight {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: var(--accent-soft);
+    border: 1px solid rgba(79,142,247,0.2);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.6;
+    margin-top: 1rem;
+    transition: all 0.3s;
+  }
+
+  .insight.warn {
+    background: var(--red-soft);
+    border-color: rgba(232,81,74,0.2);
+  }
+
+  .insight-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    margin-top: 3rem;
+    font-size: 12px;
+    color: var(--muted);
+    opacity: 0;
+    animation: fadeUp 0.7s 0.6s ease forwards;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Divider */
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.5rem 0;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="eyebrow">RSM8445 — Service Analytics · University of Toronto, Rotman</div>
+    <h1>Ontario Kidney Transplant<br><em>Wait-List Simulator</em></h1>
+    <p class="subtitle">An interactive model showing how unpredictability drives wait times in Ontario's kidney transplant system — and what pooling can do about it.</p>
+  </div>
+
+  <!-- Context -->
+  <div class="card">
+    <div class="card-title">The situation</div>
+    <p class="context-prose">
+      In Ontario, patients with <strong>End-Stage Renal Disease (ESRD)</strong> require a kidney transplant to survive long-term.
+      While waiting, they are kept alive by dialysis — a gruelling treatment with only a <strong>45% five-year survival rate</strong>.
+      Two transplant programs serve the province: one at <strong>London Health Sciences Centre (LHSC)</strong> and one in <strong>Toronto</strong>.
+      They operate as completely separate wait-lists, each constrained by a single bottleneck: the supply of donor organs.
+    </p>
+
+    <div class="context-grid">
+      <div class="context-stat">
+        <div class="context-stat-label">Toronto utilisation</div>
+        <div class="context-stat-num" style="color:var(--red)">99.92%</div>
+        <div class="context-stat-desc">327 new patients/yr vs. 328 transplants/yr — a margin of just 0.255 surgeries</div>
+      </div>
+      <div class="context-stat">
+        <div class="context-stat-label">London utilisation</div>
+        <div class="context-stat-num" style="color:var(--amber)">99.07%</div>
+        <div class="context-stat-desc">109 new patients/yr vs. 110 transplants/yr — a margin of just 1.02 surgeries</div>
+      </div>
+      <div class="context-stat">
+        <div class="context-stat-label">Dialysis survival</div>
+        <div class="context-stat-num" style="color:var(--muted)">45%</div>
+        <div class="context-stat-desc">Five-year survival rate on dialysis while waiting for a transplant</div>
+      </div>
+    </div>
+
+    <p class="context-prose">
+      In queuing theory, performance degrades <strong>exponentially</strong> as a system approaches 100% capacity.
+      Toronto is at 99.92% — effectively at its limit. Even a single additional patient per year is enough to collapse the system entirely.
+      This simulator uses <strong>Kingman's G/G/1 approximation</strong> to show how two independent forces — arrival variability and service variability — interact with that near-saturation to determine how long patients wait.
+    </p>
+
+    <hr class="context-divider">
+
+    <div class="context-heading">Two levers that control wait times</div>
+    <div class="two-col">
+      <div class="def-block">
+        <div class="def-term">Arrival variability (cₐ) — how random are referrals?</div>
+        <div class="def-desc">When cₐ = 0, patients arrive at perfectly regular intervals. When cₐ = 1 (Poisson), arrivals are random and memoryless — the clinical baseline. When cₐ = 2, referrals come in unpredictable bursts. This is controllable through standardised ESRD screening protocols.</div>
+      </div>
+      <div class="def-block amber-border">
+        <div class="def-term">Service variability (cₛ) — how random is organ supply?</div>
+        <div class="def-desc">Reflects the unpredictability of deceased donor availability. At cₛ = 1.0 (exponential), this matches standard M/M/1. At cₛ = 1.5, organ supply has a heavier tail — long dry spells followed by clusters. Reducible through better donor identification and organ preservation logistics.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="card">
+    <div class="card-title">Adjust variability</div>
+    <div class="sliders-grid">
+      <div class="slider-block">
+        <label>
+          <strong>Arrival chaos (cₐ)</strong>
+          How random are patient referrals?
+        </label>
+        <div class="slider-wrap">
+          <span>Steady</span>
+          <input type="range" id="ca-slider" min="0" max="2" step="0.05" value="1.0">
+          <span>Chaotic</span>
+        </div>
+        <span class="val-badge" id="ca-val">1.0</span>
+      </div>
+      <div class="slider-block">
+        <label>
+          <strong>Service chaos (cₛ)</strong>
+          How random is organ availability?
+        </label>
+        <div class="slider-wrap">
+          <span>Steady</span>
+          <input type="range" id="cs-slider" min="1.0" max="1.5" step="0.025" value="1.0">
+          <span>Chaotic</span>
+        </div>
+        <span class="val-badge" id="cs-val" style="color:var(--amber)">1.0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card">
+    <div class="card-title">Average time a patient waits (years)</div>
+    <div class="results-grid">
+      <div class="result-card" id="card-tor">
+        <div class="result-city">Toronto</div>
+        <div class="result-num red" id="tor-num">3.9</div>
+        <div class="result-label">years on wait-list</div>
+        <div class="bar-track"><div class="bar-fill bar-red" id="tor-bar" style="width:100%"></div></div>
+      </div>
+      <div class="result-card" id="card-lon">
+        <div class="result-city">London (LHSC)</div>
+        <div class="result-num amber" id="lon-num">1.0</div>
+        <div class="result-label">years on wait-list</div>
+        <div class="bar-track"><div class="bar-fill bar-amber" id="lon-bar" style="width:25%"></div></div>
+      </div>
+      <div class="result-card safe" id="card-pool">
+        <div class="result-city">✦ Pooled system</div>
+        <div class="result-num green" id="pool-num">0.8</div>
+        <div class="result-label">years on wait-list</div>
+        <div class="bar-track"><div class="bar-fill bar-green" id="pool-bar" style="width:20%"></div></div>
+      </div>
+    </div>
+    <div class="insight" id="insight-box">
+      <span class="insight-icon">💡</span>
+      <span id="insight-text">At baseline variability, pooling already cuts Toronto's wait from <strong>3.9 → 0.8 years</strong> — a 79% reduction — by combining spare capacity across both cities.</span>
+    </div>
+  </div>
+
+  <!-- Formula -->
+  <div class="card">
+    <div class="card-title">Why variability amplifies waiting — the Kingman formula</div>
+    <div class="formula-box">
+      <div class="formula-text">Wait ≈ <span style="color:var(--accent)">[capacity pressure]</span> × <span style="color:var(--amber)">[variability]</span></div>
+      <div class="formula-sub">Lq ≈ ρ² / 2(1−ρ) &nbsp;×&nbsp; (cₐ² + cₛ²) &nbsp;&nbsp;|&nbsp;&nbsp; W = Lq/λ + 1/μ</div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:1rem;line-height:1.7">
+      The left bracket is the <strong style="color:var(--text)">capacity amplifier</strong> — fixed by arrival and service rates.
+      The right bracket is the <strong style="color:var(--text)">variability multiplier</strong> — controlled by how unpredictable things are.
+      They multiply together. Toronto's amplifier is <strong style="color:var(--red)">625×</strong>. Every unit of chaos gets magnified 625 times.
+    </p>
+    <div class="amplifier-row">
+      <div class="amp-card">
+        <div class="amp-num red" id="amp-tor">625×</div>
+        <div class="amp-label">Toronto amplifier</div>
+      </div>
+      <div class="amp-card">
+        <div class="amp-num amber" id="amp-lon">54×</div>
+        <div class="amp-label">London amplifier</div>
+      </div>
+      <div class="amp-card">
+        <div class="amp-num" style="color:var(--accent)" id="amp-pool">172×</div>
+        <div class="amp-label">Pooled amplifier</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Implications -->
+  <div class="card">
+    <div class="card-title">What the numbers mean in practice</div>
+    <p class="context-prose" style="margin-bottom:1.25rem">
+      Reducing variability requires <strong>no new organs</strong> and no capital investment — only operational discipline.
+      The simulator above quantifies what each intervention is worth.
+    </p>
+    <div class="two-col">
+      <div class="def-block">
+        <div class="def-term">Reducing arrival chaos (cₐ: 1.0 → 0.5)</div>
+        <div class="def-desc">Achievable through standardised ESRD screening pathways across referring hospitals. Estimated impact: <strong style="color:var(--green)">~20–30% reduction</strong> in wait times at no additional cost in donor supply.</div>
+      </div>
+      <div class="def-block amber-border">
+        <div class="def-term">Reducing service chaos (cₛ: 1.5 → 1.0)</div>
+        <div class="def-desc">Achievable through better organ procurement logistics, improved preservation protocols, and predictive analytics for donor identification. Estimated impact: <strong style="color:var(--green)">~38% reduction</strong> in wait times.</div>
+      </div>
+    </div>
+    <div class="insight" style="margin-top:1rem">
+      <span class="insight-icon">📌</span>
+      <span>The amplifier values above are fixed by the system's utilisation rate (ρ) — they don't change with the sliders. What changes is the variability multiplied by that amplifier. Toronto's 625× amplifier means every improvement to predictability yields outsized returns.</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    LHSC Multi-Organ Transplant Program · Queuing Theory Analysis · RSM8445, Rotman School of Management, April 2026
+  </div>
+
+</div>
+
+<script>
+  const rhoTor  = 0.9992,   muTor  = 327.514, lamTor  = 327.259;
+  const rhoLon  = 0.9907,   muLon  = 110.047, lamLon  = 109.025;
+  const rhoPool = 0.99708,  muPool = 437.561, lamPool = 436.284;
+
+  function ampFactor(rho) { return (rho * rho) / (2 * (1 - rho)); }
+  function calcW(lam, mu, rho, ca, cs) {
+    const lq = ampFactor(rho) * (ca*ca + cs*cs);
+    return lq / lam + 1 / mu;
+  }
+
+  function colorClass(w) {
+    if (w > 6)   return 'red';
+    if (w > 2.5) return 'amber';
+    if (w > 1.2) return 'blue';
+    return 'green';
+  }
+
+  function update() {
+    const ca = parseFloat(document.getElementById('ca-slider').value);
+    const cs = parseFloat(document.getElementById('cs-slider').value);
+    document.getElementById('ca-val').textContent = ca.toFixed(2);
+    document.getElementById('cs-val').textContent = cs.toFixed(2);
+
+    const wTor  = calcW(lamTor,  muTor,  rhoTor,  ca, cs);
+    const wLon  = calcW(lamLon,  muLon,  rhoLon,  ca, cs);
+    const wPool = calcW(lamPool, muPool, rhoPool, ca, cs);
+
+    document.getElementById('tor-num').textContent  = wTor.toFixed(1);
+    document.getElementById('lon-num').textContent  = wLon.toFixed(1);
+    document.getElementById('pool-num').textContent = wPool.toFixed(1);
+
+    document.getElementById('tor-num').className  = 'result-num ' + colorClass(wTor);
+    document.getElementById('lon-num').className  = 'result-num ' + colorClass(wLon);
+    document.getElementById('pool-num').className = 'result-num ' + colorClass(wPool);
+
+    const maxW = Math.max(wTor, wLon, wPool, 1);
+    document.getElementById('tor-bar').style.width  = Math.min(100, wTor/maxW*100)  + '%';
+    document.getElementById('lon-bar').style.width  = Math.min(100, wLon/maxW*100)  + '%';
+    document.getElementById('pool-bar').style.width = Math.min(100, wPool/maxW*100) + '%';
+
+    const ampTor  = ampFactor(rhoTor);
+    const ampLon  = ampFactor(rhoLon);
+    const ampPool = ampFactor(rhoPool);
+    document.getElementById('amp-tor').textContent  = Math.round(ampTor)  + '×';
+    document.getElementById('amp-lon').textContent  = Math.round(ampLon)  + '×';
+    document.getElementById('amp-pool').textContent = Math.round(ampPool) + '×';
+
+    const pct = Math.round((1 - wPool / wTor) * 100);
+    const insight = document.getElementById('insight-box');
+    const insightText = document.getElementById('insight-text');
+
+    if (wTor > 10) {
+      insight.className = 'insight warn';
+      insightText.innerHTML = `⚠️ Toronto's wait has reached <strong>${wTor.toFixed(1)} years</strong> — patients face near-certain mortality before transplant. The system is in collapse. Even pooling only reduces this to <strong>${wPool.toFixed(1)} years</strong>.`;
+    } else if (ca < 0.3 && cs < 1.1) {
+      insight.className = 'insight';
+      insightText.innerHTML = `With near-deterministic arrivals and steady service, waits drop dramatically. London reaches <strong>${wLon.toFixed(1)} years</strong>, Toronto <strong>${wTor.toFixed(1)} years</strong>. This shows what standardised referral protocols alone can achieve — <em>no new organs needed</em>.`;
+    } else {
+      insight.className = 'insight';
+      insightText.innerHTML = `At these variability levels, pooling reduces Toronto's wait from <strong>${wTor.toFixed(1)} → ${wPool.toFixed(1)} years</strong> — a ${pct}% reduction. London improves too, from <strong>${wLon.toFixed(1)} → ${wPool.toFixed(1)} years</strong>.`;
+    }
+  }
+
+  document.getElementById('ca-slider').addEventListener('input', update);
+  document.getElementById('cs-slider').addEventListener('input', update);
+  update();
+</script>
+</body>
+</html>
