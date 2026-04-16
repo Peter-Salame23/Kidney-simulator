@@ -3,668 +3,829 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ontario Kidney Transplant — Wait-List Simulator</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<title>LLM Council — Progress Report</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@300;400;600&family=Instrument+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0d0f14;
-    --surface: #151821;
-    --surface2: #1c2130;
-    --border: rgba(255,255,255,0.07);
-    --text: #e8eaf0;
-    --muted: #7a8099;
-    --accent: #4f8ef7;
-    --green: #34c98a;
-    --amber: #f5a623;
-    --red: #e8514a;
-    --red-soft: rgba(232,81,74,0.12);
-    --green-soft: rgba(52,201,138,0.12);
-    --accent-soft: rgba(79,142,247,0.12);
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* Background grid */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(79,142,247,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(79,142,247,0.03) 1px, transparent 1px);
-    background-size: 48px 48px;
-    pointer-events: none;
-  }
-
-  .page {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 3rem 2rem 6rem;
-  }
-
-  /* Header */
-  .header {
-    margin-bottom: 3rem;
-    opacity: 0;
-    animation: fadeUp 0.7s ease forwards;
-  }
-
-  .eyebrow {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 12px;
-  }
-
-  h1 {
-    font-family: 'DM Serif Display', serif;
-    font-size: clamp(28px, 5vw, 44px);
-    line-height: 1.15;
-    color: var(--text);
-    margin-bottom: 12px;
-  }
-
-  h1 em {
-    font-style: italic;
-    color: var(--accent);
-  }
-
-  .subtitle {
-    font-size: 15px;
-    color: var(--muted);
-    line-height: 1.6;
-    max-width: 560px;
-  }
-
-  /* Cards */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.75rem 2rem;
-    margin-bottom: 1.5rem;
-    opacity: 0;
-    animation: fadeUp 0.7s ease forwards;
-  }
-
-  .card:nth-child(2) { animation-delay: 0.1s; }
-  .card:nth-child(3) { animation-delay: 0.2s; }
-  .card:nth-child(4) { animation-delay: 0.3s; }
-  .card:nth-child(5) { animation-delay: 0.4s; }
-
-  .card-title {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 1.25rem;
-  }
-
-  /* Sliders section */
-  .sliders-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-  }
-
-  @media (max-width: 600px) {
-    .sliders-grid { grid-template-columns: 1fr; }
-  }
-
-  .slider-block label {
-    display: block;
-    font-size: 13px;
-    color: var(--muted);
-    margin-bottom: 8px;
-  }
-
-  .slider-block label strong {
-    display: block;
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--text);
-    margin-bottom: 2px;
-  }
-
-  .slider-wrap {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 10px 0 6px;
-  }
-
-  .slider-wrap span {
-    font-size: 11px;
-    color: var(--muted);
-    width: 40px;
-  }
-
-  .slider-wrap span:last-child { text-align: right; }
-
-  input[type=range] {
-    flex: 1;
-    -webkit-appearance: none;
-    appearance: none;
-    height: 4px;
-    border-radius: 2px;
-    background: var(--surface2);
-    outline: none;
-    cursor: pointer;
-  }
-
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: var(--accent);
-    border: 2px solid var(--bg);
-    cursor: pointer;
-    transition: transform 0.15s;
-  }
-
-  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
-
-  #cs-slider::-webkit-slider-thumb { background: var(--amber); }
-
-  .val-badge {
-    font-size: 22px;
-    font-weight: 600;
-    color: var(--text);
-  }
-
-  /* Results grid */
-  .results-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-  }
-
-  @media (max-width: 500px) {
-    .results-grid { grid-template-columns: 1fr; }
-  }
-
-  .result-card {
-    background: var(--surface2);
-    border-radius: 12px;
-    padding: 1.25rem;
-    border: 1px solid var(--border);
-    transition: border-color 0.3s;
-  }
-
-  .result-card.danger { border-color: rgba(232,81,74,0.4); }
-  .result-card.safe   { border-color: rgba(52,201,138,0.4); }
-
-  .result-city {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 6px;
-  }
-
-  .result-num {
-    font-family: 'DM Serif Display', serif;
-    font-size: 36px;
-    line-height: 1;
-    margin-bottom: 4px;
-    transition: color 0.3s;
-  }
-
-  .result-num.red    { color: var(--red); }
-  .result-num.amber  { color: var(--amber); }
-  .result-num.green  { color: var(--green); }
-  .result-num.blue   { color: var(--accent); }
-
-  .result-label { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
-
-  .bar-track {
-    height: 5px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 3px;
-    overflow: hidden;
-  }
-
-  .bar-fill {
-    height: 100%;
-    border-radius: 3px;
-    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .bar-red   { background: var(--red); }
-  .bar-amber { background: var(--amber); }
-  .bar-green { background: var(--green); }
-  .bar-blue  { background: var(--accent); }
-
-  /* Formula explainer */
-  .formula-box {
-    background: var(--surface2);
-    border-radius: 12px;
-    padding: 1.25rem 1.5rem;
-    border-left: 3px solid var(--accent);
-    margin-bottom: 1rem;
-  }
-
-  .formula-text {
-    font-family: 'DM Serif Display', serif;
-    font-size: 17px;
-    color: var(--text);
-    line-height: 1.5;
-    margin-bottom: 6px;
-  }
-
-  .formula-sub { font-size: 13px; color: var(--muted); line-height: 1.6; }
-
-  /* Amplifier display */
-  .amplifier-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-top: 1rem;
-  }
-
-  .amp-card {
-    text-align: center;
-    background: var(--surface2);
-    border-radius: 10px;
-    padding: 1rem;
-    border: 1px solid var(--border);
-  }
-
-  .amp-num {
-    font-family: 'DM Serif Display', serif;
-    font-size: 28px;
-    margin-bottom: 2px;
-    transition: color 0.3s;
-  }
-
-  .amp-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-
-  /* Context section */
-  .context-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-  }
-
-  @media (max-width: 640px) { .context-grid { grid-template-columns: 1fr; } }
-
-  .context-stat {
-    background: var(--surface2);
-    border-radius: 12px;
-    padding: 1.25rem;
-    border: 1px solid var(--border);
-  }
-
-  .context-stat-label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 6px;
-  }
-
-  .context-stat-num {
-    font-family: 'DM Serif Display', serif;
-    font-size: 32px;
-    line-height: 1;
-    margin-bottom: 4px;
-  }
-
-  .context-stat-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
-
-  .context-prose {
-    font-size: 14px;
-    color: var(--muted);
-    line-height: 1.8;
-    margin-bottom: 1.25rem;
-  }
-
-  .context-prose strong { color: var(--text); font-weight: 500; }
-
-  .context-divider {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 1.25rem 0;
-  }
-
-  .context-heading {
-    font-family: 'DM Serif Display', serif;
-    font-size: 18px;
-    color: var(--text);
-    margin-bottom: 10px;
-  }
-
-  .two-col {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-
-  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
-
-  .def-block {
-    background: var(--surface2);
-    border-radius: 10px;
-    padding: 1rem 1.25rem;
-    border-left: 3px solid var(--accent);
-  }
-
-  .def-block.amber-border { border-left-color: var(--amber); }
-
-  .def-term {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: 4px;
-  }
-
-  .def-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
-
-  /* Insight bar */
-  .insight {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    background: var(--accent-soft);
-    border: 1px solid rgba(79,142,247,0.2);
-    border-radius: 12px;
-    padding: 1rem 1.25rem;
-    font-size: 14px;
-    color: var(--text);
-    line-height: 1.6;
-    margin-top: 1rem;
-    transition: all 0.3s;
-  }
-
-  .insight.warn {
-    background: var(--red-soft);
-    border-color: rgba(232,81,74,0.2);
-  }
-
-  .insight-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
-
-  /* Footer */
-  .footer {
-    text-align: center;
-    margin-top: 3rem;
-    font-size: 12px;
-    color: var(--muted);
-    opacity: 0;
-    animation: fadeUp 0.7s 0.6s ease forwards;
-  }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  /* Divider */
-  hr {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 1.5rem 0;
-  }
+:root {
+  --bg:#080c14;--bg2:#0d1220;--bg3:#111827;
+  --border:rgba(99,140,210,0.18);
+  --blue:#4f8ef7;--blue-dim:rgba(79,142,247,0.12);
+  --green:#34d399;--green-dim:rgba(52,211,153,0.12);
+  --amber:#fbbf24;--amber-dim:rgba(251,191,36,0.12);
+  --red:#f87171;--red-dim:rgba(248,113,113,0.12);
+  --text:#e2e8f0;--muted:#64748b;--accent:#a5c3ff;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Instrument Sans',sans-serif;overflow:hidden;height:100vh;width:100vw;}
+.deck{width:100%;height:100vh;position:relative;}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:3rem;opacity:0;pointer-events:none;transition:opacity 0.45s ease;}
+.slide.active{opacity:1;pointer-events:all;}
+.nav{position:fixed;bottom:1.8rem;left:50%;transform:translateX(-50%);display:flex;gap:.8rem;align-items:center;z-index:100;}
+.nav button{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.72rem;padding:.45rem 1.1rem;cursor:pointer;transition:all .2s;letter-spacing:.05em;}
+.nav button:hover{background:var(--blue-dim);border-color:var(--blue);color:var(--blue);}
+.nav button:disabled{opacity:.3;cursor:default;}
+.slide-counter{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--muted);min-width:3.5rem;text-align:center;}
+.progress-bar{position:fixed;top:0;left:0;height:2px;background:var(--blue);transition:width .4s ease;z-index:100;}
+
+/* ── TYPOGRAPHY ── */
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:.2em;color:var(--blue);text-transform:uppercase;margin-bottom:1.4rem;}
+.section-label{font-family:'JetBrains Mono',monospace;font-size:.63rem;letter-spacing:.2em;color:var(--blue);text-transform:uppercase;margin-bottom:.6rem;align-self:flex-start;}
+.slide-title{font-family:'DM Serif Display',serif;font-size:clamp(1.5rem,2.8vw,2.2rem);color:#f1f5f9;margin-bottom:.3rem;align-self:flex-start;}
+.slide-rule{width:100%;height:1px;background:var(--border);margin-bottom:1.6rem;}
+.mono{font-family:'JetBrains Mono',monospace;}
+
+/* ── SLIDE 1 TITLE ── */
+#s1{background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(79,142,247,.07) 0%,transparent 70%),var(--bg);}
+.title-main{font-family:'DM Serif Display',serif;font-size:clamp(2.2rem,4.5vw,3.6rem);line-height:1.1;text-align:center;color:#f1f5f9;max-width:760px;margin-bottom:1.2rem;}
+.title-main em{color:var(--accent);font-style:italic;}
+.title-sub{font-size:.92rem;color:var(--muted);text-align:center;max-width:500px;line-height:1.65;margin-bottom:2.5rem;}
+.title-meta{display:flex;gap:2.5rem;font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--muted);}
+.title-meta span{color:var(--accent);}
+
+/* ── SHARED ── */
+.full-slide{align-items:flex-start;max-width:880px;margin:0 auto;width:100%;}
+
+/* ── SLIDE: PROJECT CONTEXT ── */
+.context-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:1rem;width:100%;}
+.context-main{background:var(--bg2);border:1px solid var(--border);padding:1.5rem;}
+.ctx-q{font-family:'DM Serif Display',serif;font-size:1.25rem;color:var(--accent);font-style:italic;line-height:1.45;margin-bottom:.9rem;border-left:3px solid var(--blue);padding-left:.9rem;}
+.ctx-body{font-size:.84rem;color:var(--muted);line-height:1.75;}
+.ctx-body p+p{margin-top:.65rem;}
+.ctx-body strong{color:var(--text);}
+.context-side{display:flex;flex-direction:column;gap:.75rem;}
+.ctx-stat{background:var(--bg2);border:1px solid var(--border);padding:1rem 1.2rem;}
+.ctx-stat-n{font-family:'DM Serif Display',serif;font-size:2.2rem;line-height:1;margin-bottom:.2rem;}
+.ctx-stat-n.blue{color:var(--blue);}
+.ctx-stat-n.green{color:var(--green);}
+.ctx-stat-n.amber{color:var(--amber);}
+.ctx-stat-l{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);letter-spacing:.07em;}
+
+/* ── SLIDE: ITERATION HISTORY ── */
+.iter-wrap{display:flex;width:100%;position:relative;}
+.iter-card{flex:1;background:var(--bg2);border:1px solid var(--border);padding:1.2rem;position:relative;}
+.iter-card+.iter-card{border-left:none;}
+.iter-card.deprecated{opacity:.5;}
+.iter-badge{position:absolute;top:.65rem;right:.65rem;font-family:'JetBrains Mono',monospace;font-size:.53rem;letter-spacing:.12em;padding:.12rem .35rem;}
+.iter-badge.dep{color:var(--red);border:1px solid var(--red);background:var(--red-dim);}
+.iter-badge.cur{color:var(--green);border:1px solid var(--green);background:var(--green-dim);}
+.iter-dot{width:9px;height:9px;border-radius:50%;margin-bottom:.8rem;}
+.iter-card.deprecated .iter-dot{background:var(--red-dim);border:2px solid var(--red);}
+.iter-card.current .iter-dot{background:var(--green);border:2px solid var(--green);box-shadow:0 0 7px var(--green);}
+.iter-card.planned .iter-dot{background:var(--border);border:2px solid var(--border);}
+.iter-num{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);margin-bottom:.3rem;}
+.iter-name{font-family:'DM Serif Display',serif;font-size:1rem;color:#f1f5f9;margin-bottom:.45rem;}
+.iter-desc{font-size:.79rem;color:var(--muted);line-height:1.6;}
+.iter-desc strong{color:var(--text);}
+.iter-note{margin-top:.65rem;font-size:.75rem;font-family:'JetBrains Mono',monospace;padding:.45rem .65rem;border-left:2px solid;}
+.iter-card.deprecated .iter-note{color:var(--red);border-color:var(--red);background:var(--red-dim);}
+.iter-card.current .iter-note{color:var(--green);border-color:var(--green);background:var(--green-dim);}
+.iter-card.planned .iter-note{color:var(--muted);border-color:var(--border);}
+
+/* ── SLIDE: DATA ── */
+.data-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;width:100%;}
+.data-card{background:var(--bg2);border:1px solid var(--border);padding:1.2rem;position:relative;}
+.data-card::before{content:'';position:absolute;top:0;left:0;width:100%;height:2px;}
+.data-card.b::before{background:var(--blue);}
+.data-card.g::before{background:var(--green);}
+.data-card.a::before{background:var(--amber);}
+.data-card.p::before{background:var(--accent);}
+.dc-label{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.13em;text-transform:uppercase;margin-bottom:.45rem;}
+.data-card.b .dc-label{color:var(--blue);}
+.data-card.g .dc-label{color:var(--green);}
+.data-card.a .dc-label{color:var(--amber);}
+.data-card.p .dc-label{color:var(--accent);}
+.dc-body{font-size:.82rem;color:var(--muted);line-height:1.7;}
+.dc-body strong{color:var(--text);}
+.strat-row{display:flex;align-items:center;gap:.55rem;margin-top:.35rem;}
+.strat-bg{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.strat-fg{height:100%;border-radius:2px;background:var(--blue);}
+.strat-lbl{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);min-width:5rem;}
+.strat-val{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--accent);min-width:2.5rem;text-align:right;}
+.data-file{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--accent);background:var(--blue-dim);border:1px solid var(--border);padding:.3rem .65rem;display:inline-block;margin-bottom:.55rem;}
+
+/* ── SLIDE: DEBATE MECHANICS ── */
+.mech-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;width:100%;}
+.mech-card{background:var(--bg2);border:1px solid var(--border);padding:1.2rem;}
+.mc-num{font-family:'DM Serif Display',serif;font-size:1.7rem;color:var(--border);float:right;line-height:1;}
+.mc-tag{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.13em;text-transform:uppercase;color:var(--blue);margin-bottom:.4rem;}
+.mc-title{font-family:'DM Serif Display',serif;font-size:1rem;color:#f1f5f9;margin-bottom:.45rem;}
+.mc-desc{font-size:.81rem;color:var(--muted);line-height:1.7;}
+.mc-desc strong{color:var(--text);}
+.flow-strip{width:100%;background:var(--bg2);border:1px solid var(--border);padding:.8rem 1.1rem;margin-top:.9rem;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;}
+.fn{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--muted);padding:.27rem .6rem;border:1px solid var(--border);white-space:nowrap;}
+.fn.hi{border-color:var(--blue);color:var(--blue);background:var(--blue-dim);}
+.fn.ok{border-color:var(--green);color:var(--green);background:var(--green-dim);}
+.fa{color:var(--border);font-size:.75rem;}
+
+/* ── SLIDE 2 PROBLEM ── */
+#s2{align-items:flex-start;max-width:880px;margin:0 auto;width:100%;}
+.prob-grid{display:grid;grid-template-columns:1fr 1fr;gap:.9rem;width:100%;}
+.prob-card{background:var(--bg2);border:1px solid var(--border);padding:1.4rem;position:relative;}
+.prob-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;}
+.prob-card.r::before{background:var(--red);}
+.prob-card.a::before{background:var(--amber);}
+.prob-card.b::before{background:var(--blue);}
+.prob-card.g::before{background:var(--green);}
+.pc-label{font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.13em;text-transform:uppercase;margin-bottom:.5rem;}
+.prob-card.r .pc-label{color:var(--red);}
+.prob-card.a .pc-label{color:var(--amber);}
+.prob-card.b .pc-label{color:var(--blue);}
+.prob-card.g .pc-label{color:var(--green);}
+.big-stat{font-family:'DM Serif Display',serif;font-size:2.8rem;line-height:1;margin-bottom:.25rem;}
+.prob-card.r .big-stat{color:var(--red);}
+.prob-card.a .big-stat{color:var(--amber);}
+.pc-text{font-size:.84rem;color:var(--text);line-height:1.6;}
+
+/* ── SLIDE 3 PIPELINE ── */
+#s3{align-items:flex-start;max-width:880px;margin:0 auto;width:100%;}
+.pipe-wrap{display:flex;width:100%;align-items:stretch;}
+.pipe-stage{flex:1;background:var(--bg2);border:1px solid var(--border);padding:1.3rem;position:relative;}
+.pipe-stage+.pipe-stage{border-left:none;}
+.p-arrow{position:absolute;right:-11px;top:50%;transform:translateY(-50%);color:var(--blue);font-size:1.1rem;z-index:2;}
+.ps-num{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);margin-bottom:.4rem;}
+.ps-name{font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--accent);margin-bottom:.35rem;}
+.ps-model{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);margin-bottom:.7rem;}
+.ps-desc{font-size:.8rem;color:var(--text);line-height:1.6;}
+.tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:.57rem;padding:.18rem .45rem;border:1px solid var(--blue);color:var(--blue);background:var(--blue-dim);margin-top:.5rem;margin-right:.25rem;}
+.pipe-meta{margin-top:1rem;display:flex;gap:2rem;font-size:.8rem;color:var(--muted);}
+.pipe-meta span{color:var(--accent);}
+
+/* ── SLIDE 4 RESULTS ── */
+#s4{align-items:flex-start;max-width:880px;margin:0 auto;width:100%;}
+.res-table{width:100%;border-collapse:collapse;font-size:.85rem;}
+.res-table th{font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:.55rem .9rem;text-align:left;border-bottom:1px solid var(--border);}
+.res-table td{padding:.7rem .9rem;border-bottom:1px solid rgba(99,140,210,.07);font-family:'JetBrains Mono',monospace;font-size:.8rem;}
+.res-table tr.crow td{background:var(--green-dim);color:var(--green);font-weight:600;border-bottom:1px solid rgba(52,211,153,.2);}
+.res-table tr.crow td:first-child{border-left:3px solid var(--green);}
+.res-table tr:not(.crow) td:first-child{border-left:3px solid transparent;}
+.bar-wrap{display:flex;align-items:center;gap:.5rem;}
+.bar{height:4px;border-radius:2px;background:var(--border);width:80px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:2px;background:var(--muted);width:0;transition:width 1.1s ease .2s;}
+.crow .bar-fill{background:var(--green);}
+.chip{font-size:.62rem;padding:.14rem .38rem;border-radius:2px;}
+.chip.bad{background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,.3);}
+.chip.ok{background:var(--green-dim);color:var(--green);border:1px solid rgba(52,211,153,.3);}
+.verdict-pills{display:flex;gap:.8rem;margin-top:1.1rem;width:100%;}
+.vp{flex:1;background:var(--bg2);border:1px solid var(--border);padding:.7rem .8rem;display:flex;flex-direction:column;align-items:center;gap:.25rem;}
+.vp-n{font-family:'DM Serif Display',serif;font-size:1.45rem;color:var(--accent);}
+.vp-l{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--muted);text-align:center;letter-spacing:.06em;}
+
+/* ── SLIDE 5 SIMULATION ── */
+#s9{align-items:stretch;padding:1.2rem 1.8rem 4rem;max-width:1080px;margin:0 auto;width:100%;justify-content:flex-start;}
+.sim-top{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:.6rem;}
+.sim-ctrl{display:flex;gap:.5rem;align-items:center;}
+.sim-stats{display:flex;gap:.6rem;}
+.sc{font-family:'JetBrains Mono',monospace;font-size:.66rem;padding:.28rem .65rem;background:var(--bg2);border:1px solid var(--border);color:var(--muted);}
+.sc span{color:var(--accent);}
+.sc.acc span{color:var(--green);font-size:.76rem;font-weight:600;}
+.sbtn{font-family:'JetBrains Mono',monospace;font-size:.68rem;padding:.38rem .95rem;border:1px solid var(--border);background:var(--bg2);color:var(--text);cursor:pointer;transition:all .2s;letter-spacing:.04em;}
+.sbtn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-dim);}
+.sbtn:disabled{opacity:.35;cursor:default;}
+.rd-bar{display:flex;gap:.35rem;align-items:center;margin-bottom:.5rem;}
+.rd{width:6px;height:6px;border-radius:50%;background:var(--border);transition:background .3s;}
+.rd.act{background:var(--blue);box-shadow:0 0 5px var(--blue);}
+.rd.done{background:var(--green);}
+.rd-txt{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);margin-left:.3rem;}
+.sim-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr;gap:.7rem;flex:1;min-height:0;}
+.sim-q{grid-column:1/-1;background:var(--bg2);border:1px solid var(--border);padding:.9rem 1.1rem;min-height:72px;}
+.sq-label{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--muted);letter-spacing:.13em;text-transform:uppercase;margin-bottom:.35rem;display:flex;justify-content:space-between;align-items:center;}
+.sq-text{font-size:.84rem;color:var(--text);line-height:1.5;}
+.sq-opts{display:flex;gap:.4rem;margin-top:.5rem;flex-wrap:wrap;}
+.sq-opt{font-family:'JetBrains Mono',monospace;font-size:.68rem;padding:.22rem .55rem;border:1px solid var(--border);color:var(--muted);transition:all .3s;}
+.sq-opt.correct{border-color:var(--green);color:var(--green);background:var(--green-dim);}
+.sq-opt.wrong{border-color:var(--red);color:var(--red);background:var(--red-dim);}
+.fuzz-badge{font-family:'JetBrains Mono',monospace;font-size:.58rem;padding:.18rem .45rem;background:rgba(251,191,36,.13);border:1px solid var(--amber);color:var(--amber);letter-spacing:.08em;display:none;}
+.fuzz-badge.show{display:inline-block;}
+.sim-agents{display:flex;flex-direction:column;gap:.5rem;}
+.agent-card{background:var(--bg2);border:1px solid var(--border);padding:.75rem .9rem;position:relative;overflow:hidden;}
+.agent-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;}
+.ac-claude::before{background:var(--blue);}
+.ac-gemini::before{background:var(--accent);}
+.ac-o3::before{background:var(--green);}
+.ah{display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem;}
+.an{font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:.07em;}
+.ac-claude .an{color:var(--blue);}
+.ac-gemini .an{color:var(--accent);}
+.ac-o3 .an{color:var(--green);}
+.as{font-family:'JetBrains Mono',monospace;font-size:.58rem;padding:.12rem .38rem;border:1px solid var(--border);color:var(--muted);transition:all .25s;}
+.as.thinking{border-color:var(--amber);color:var(--amber);background:var(--amber-dim);}
+.as.voted{border-color:var(--blue);color:var(--blue);background:var(--blue-dim);}
+.as.correct{border-color:var(--green);color:var(--green);background:var(--green-dim);}
+.as.wrong{border-color:var(--red);color:var(--red);background:var(--red-dim);}
+.as.changed{border-color:var(--amber);color:var(--amber);background:var(--amber-dim);}
+.as.abstain{border-color:var(--muted);color:var(--muted);}
+.ab{display:flex;justify-content:space-between;align-items:flex-end;gap:.4rem;}
+.ar{font-size:.74rem;color:var(--muted);line-height:1.45;flex:1;min-height:2.2rem;}
+.avd{display:flex;flex-direction:column;align-items:flex-end;gap:.15rem;min-width:52px;}
+.av{font-family:'DM Serif Display',serif;font-size:1.65rem;line-height:1;opacity:0;transition:all .35s;}
+.av.show{opacity:1;}
+.av.cv{color:var(--green);}
+.av.wv{color:var(--red);}
+.av.xv{color:var(--muted);font-size:.85rem;margin-bottom:.2rem;}
+.aconf{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--muted);opacity:0;transition:opacity .35s .15s;}
+.aconf.show{opacity:1;}
+.achg{font-size:.6rem;color:var(--amber);display:none;}
+.achg.show{display:inline;}
+.sim-right{display:flex;flex-direction:column;gap:.6rem;}
+.sim-log{background:var(--bg2);border:1px solid var(--border);padding:.7rem .9rem;flex:1;min-height:0;overflow-y:auto;}
+.log-lbl{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--muted);letter-spacing:.13em;text-transform:uppercase;margin-bottom:.5rem;border-bottom:1px solid var(--border);padding-bottom:.35rem;}
+.le{font-family:'JetBrains Mono',monospace;font-size:.64rem;color:var(--muted);padding:.22rem 0;display:flex;gap:.4rem;opacity:0;transform:translateY(3px);transition:all .25s;line-height:1.4;}
+.le.show{opacity:1;transform:translateY(0);}
+.le .lt{min-width:2.8rem;opacity:.4;}
+.le.info .lm{color:var(--text);}
+.le.good .lm{color:var(--green);}
+.le.warn .lm{color:var(--amber);}
+.le.err .lm{color:var(--red);}
+.le.head .lm{color:var(--accent);font-weight:600;}
+.sim-verdict{background:var(--bg2);border:1px solid var(--border);padding:.9rem 1.1rem;transition:border-color .4s;min-height:82px;display:flex;flex-direction:column;justify-content:center;}
+.sim-verdict.sc{border-color:var(--green);background:var(--green-dim);}
+.sim-verdict.sw{border-color:var(--red);background:var(--red-dim);}
+.vl{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--muted);letter-spacing:.13em;text-transform:uppercase;margin-bottom:.35rem;}
+.va{font-family:'DM Serif Display',serif;font-size:1.5rem;opacity:0;transition:opacity .4s;}
+.va.show{opacity:1;}
+.va.ca{color:var(--green);}
+.va.wa{color:var(--red);}
+.vm{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--muted);margin-top:.18rem;opacity:0;transition:opacity .4s .15s;}
+.vm.show{opacity:1;}
+.sim-log::-webkit-scrollbar{width:3px;}
+.sim-log::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* ── SLIDE 6 NEXT STEPS ── */
+#s6{align-items:flex-start;max-width:880px;margin:0 auto;width:100%;}
+.ns-grid{display:grid;grid-template-columns:1fr 1fr;gap:.9rem;width:100%;}
+.ns-card{background:var(--bg2);border:1px solid var(--border);padding:1.4rem;position:relative;}
+.ns-card::before{content:'';position:absolute;top:0;left:0;width:100%;height:2px;}
+.ns-card.b::before{background:var(--blue);}
+.ns-card.a::before{background:var(--amber);}
+.ns-num{font-family:'DM Serif Display',serif;font-size:1.9rem;color:var(--border);position:absolute;top:.7rem;right:.9rem;}
+.ns-tag{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.5rem;}
+.ns-card.b .ns-tag{color:var(--blue);}
+.ns-card.a .ns-tag{color:var(--amber);}
+.ns-title{font-family:'DM Serif Display',serif;font-size:1.15rem;color:#f1f5f9;margin-bottom:.55rem;}
+.ns-desc{font-size:.82rem;color:var(--muted);line-height:1.7;}
+.ns-desc strong{color:var(--text);}
+.ns-footer{margin-top:1.3rem;padding:.9rem 1.1rem;background:var(--bg2);border:1px solid var(--border);width:100%;font-size:.82rem;color:var(--muted);line-height:1.7;}
 </style>
 </head>
 <body>
-<div class="page">
+<div class="progress-bar" id="pb"></div>
+<div class="deck">
 
-  <div class="header">
-    <div class="eyebrow">RSM8445 — Service Analytics · University of Toronto, Rotman</div>
-    <h1>Ontario Kidney Transplant<br><em>Wait-List Simulator</em></h1>
-    <p class="subtitle">An interactive model showing how unpredictability drives wait times in Ontario's kidney transplant system — and what pooling can do about it.</p>
+<!-- S1: TITLE -->
+<div class="slide active" id="s1">
+  <div class="eyebrow">RSM 8431 · University of Toronto · April 2026</div>
+  <h1 class="title-main">From Single-Model Inference<br>to <em>Deliberative Debate</em></h1>
+  <p class="title-sub">Does forcing AI models to argue with each other produce better answers than asking any one of them alone?</p>
+  <div class="title-meta">
+    <div>Author <span>Peter Salame</span></div>
+    <div>Dataset <span>n = 500, stratified</span></div>
+    <div>Council Accuracy <span>81.9%</span></div>
   </div>
+</div>
 
-  <!-- Context -->
-  <div class="card">
-    <div class="card-title">The situation</div>
-    <p class="context-prose">
-      In Ontario, patients with <strong>End-Stage Renal Disease (ESRD)</strong> require a kidney transplant to survive long-term.
-      While waiting, they are kept alive by dialysis — a gruelling treatment with only a <strong>45% five-year survival rate</strong>.
-      Two transplant programs serve the province: one at <strong>London Health Sciences Centre (LHSC)</strong> and one in <strong>Toronto</strong>.
-      They operate as completely separate wait-lists, each constrained by a single bottleneck: the supply of donor organs.
-    </p>
-
-    <div class="context-grid">
-      <div class="context-stat">
-        <div class="context-stat-label">Toronto utilisation</div>
-        <div class="context-stat-num" style="color:var(--red)">99.92%</div>
-        <div class="context-stat-desc">327 new patients/yr vs. 328 transplants/yr — a margin of just 0.255 surgeries</div>
-      </div>
-      <div class="context-stat">
-        <div class="context-stat-label">London utilisation</div>
-        <div class="context-stat-num" style="color:var(--amber)">99.07%</div>
-        <div class="context-stat-desc">109 new patients/yr vs. 110 transplants/yr — a margin of just 1.02 surgeries</div>
-      </div>
-      <div class="context-stat">
-        <div class="context-stat-label">Dialysis survival</div>
-        <div class="context-stat-num" style="color:var(--muted)">45%</div>
-        <div class="context-stat-desc">Five-year survival rate on dialysis while waiting for a transplant</div>
-      </div>
+<!-- S2: PROBLEM -->
+<div class="slide" id="s2">
+  <div class="section-label">01 · The Problem</div>
+  <h2 class="slide-title">Individual Models Have a Fatal Trade-off</h2>
+  <div class="slide-rule"></div>
+  <div class="prob-grid">
+    <div class="prob-card r">
+      <div class="pc-label">The Abstention Problem</div>
+      <div class="big-stat">27.2%</div>
+      <div class="pc-text">o3 — the most accurate model when it answers — refuses to answer more than 1 in 4 questions. Precision without coverage is not deployable.</div>
     </div>
-
-    <p class="context-prose">
-      In queuing theory, performance degrades <strong>exponentially</strong> as a system approaches 100% capacity.
-      Toronto is at 99.92% — effectively at its limit. Even a single additional patient per year is enough to collapse the system entirely.
-      This simulator uses <strong>Kingman's G/G/1 approximation</strong> to show how two independent forces — arrival variability and service variability — interact with that near-saturation to determine how long patients wait.
-    </p>
-
-    <hr class="context-divider">
-
-    <div class="context-heading">Two levers that control wait times</div>
-    <div class="two-col">
-      <div class="def-block">
-        <div class="def-term">Arrival variability (cₐ) — how random are referrals?</div>
-        <div class="def-desc">When cₐ = 0, patients arrive at perfectly regular intervals. When cₐ = 1 (Poisson), arrivals are random and memoryless — the clinical baseline. When cₐ = 2, referrals come in unpredictable bursts. This is controllable through standardised ESRD screening protocols.</div>
-      </div>
-      <div class="def-block amber-border">
-        <div class="def-term">Service variability (cₛ) — how random is organ supply?</div>
-        <div class="def-desc">Reflects the unpredictability of deceased donor availability. At cₛ = 1.0 (exponential), this matches standard M/M/1. At cₛ = 1.5, organ supply has a heavier tail — long dry spells followed by clusters. Reducible through better donor identification and organ preservation logistics.</div>
-      </div>
+    <div class="prob-card a">
+      <div class="pc-label">The Accuracy Ceiling</div>
+      <div class="big-stat">78.0%</div>
+      <div class="pc-text">Gemini's best all-500 accuracy. Models that answer everything sacrifice accuracy. No individual model wins on both dimensions simultaneously.</div>
+    </div>
+    <div class="prob-card b">
+      <div class="pc-label">No Internal Error Check</div>
+      <div class="pc-text">A solo model cannot review its own reasoning. It is confidently wrong with no recourse — and structurally has no way to detect it.</div>
+    </div>
+    <div class="prob-card g">
+      <div class="pc-label">The Council Solution</div>
+      <div class="pc-text">Force heterogeneous models to cross-examine each other before committing. Disagreement becomes the signal. Debate forces re-examination.</div>
     </div>
   </div>
+</div>
 
-  <!-- Controls -->
-  <div class="card">
-    <div class="card-title">Adjust variability</div>
-    <div class="sliders-grid">
-      <div class="slider-block">
-        <label>
-          <strong>Arrival chaos (cₐ)</strong>
-          How random are patient referrals?
-        </label>
-        <div class="slider-wrap">
-          <span>Steady</span>
-          <input type="range" id="ca-slider" min="0" max="2" step="0.05" value="1.0">
-          <span>Chaotic</span>
+
+<!-- S3: PROJECT CONTEXT -->
+<div class="slide full-slide" id="s3">
+  <div class="section-label">02 · Project Context</div>
+  <h2 class="slide-title">What This Project Is Actually About</h2>
+  <div class="slide-rule"></div>
+  <div class="context-grid">
+    <div class="context-main">
+      <div class="ctx-q">"Can structured disagreement between AI models produce more reliable decisions than any single model alone?"</div>
+      <div class="ctx-body">
+        <p>Large language models have reached human-level performance on medical benchmarks. But <strong>benchmark accuracy is not deployment accuracy</strong>. Models fail silently, abstain unpredictably, and have no mechanism to catch their own errors.</p>
+        <p>This project applies the <strong>LLM Council architecture</strong> — inspired by Andrej Karpathy's multi-model deliberation framework — to structured medical QA classification. Rather than routing a question to one model, we route it to three heterogeneous models, force them to debate, and let disagreement surface errors before they reach a verdict.</p>
+        <p>The domain is <strong>medical question answering</strong>: a setting where overconfident wrong answers have real consequences, where multiple valid reasoning paths exist, and where the gap between benchmark performance and real-world robustness is most consequential.</p>
+      </div>
+    </div>
+    <div class="context-side">
+      <div class="ctx-stat">
+        <div class="ctx-stat-n blue">3</div>
+        <div class="ctx-stat-l">heterogeneous council agents<br>across providers</div>
+      </div>
+      <div class="ctx-stat">
+        <div class="ctx-stat-n amber">2</div>
+        <div class="ctx-stat-l">debate rounds per question<br>before final verdict</div>
+      </div>
+      <div class="ctx-stat">
+        <div class="ctx-stat-n green">81.9%</div>
+        <div class="ctx-stat-l">council accuracy, n = 500<br>stratified evaluation</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S4: ITERATION HISTORY -->
+<div class="slide full-slide" id="s4">
+  <div class="section-label">03 · Iteration History</div>
+  <h2 class="slide-title">How We Got Here</h2>
+  <div class="slide-rule"></div>
+  <div class="iter-wrap">
+    <div class="iter-card deprecated">
+      <div class="iter-badge dep">DEPRECATED</div>
+      <div class="iter-dot"></div>
+      <div class="iter-num">Iteration 01</div>
+      <div class="iter-name">Single Llama Model</div>
+      <div class="iter-desc">A fine-tuned <strong>Llama-based model</strong> as the sole classification engine. Served to validate the data pipeline and establish a performance floor.</div>
+      <div class="iter-note">Calibration collapse on minority classes. Confidence scores uncorrelated with correctness. No error-checking mechanism.</div>
+    </div>
+    <div class="iter-card deprecated">
+      <div class="iter-badge dep">PILOT</div>
+      <div class="iter-dot"></div>
+      <div class="iter-num">Iteration 01b</div>
+      <div class="iter-name">Debate Pilot — n = 100</div>
+      <div class="iter-desc">First test of the council architecture on <strong>100 unstratified questions</strong>. Confirmed directional improvement and that debate triggered meaningful position changes.</div>
+      <div class="iter-note">Sample too small and unstratified for reliable estimation. Directional only — motivated full evaluation.</div>
+    </div>
+    <div class="iter-card current">
+      <div class="iter-badge cur">CURRENT</div>
+      <div class="iter-dot"></div>
+      <div class="iter-num">Iteration 02</div>
+      <div class="iter-name">Council — n = 500, Stratified</div>
+      <div class="iter-desc">Three-agent debate council with <strong>stratified n = 500 evaluation</strong>. Confidence threshold τ = 0.60. Two debate rounds with judge escalation fallback.</div>
+      <div class="iter-note">81.9% · CI [78.5, 85.4]% · Beats all solo baselines · ≈0% abstention</div>
+    </div>
+    <div class="iter-card planned">
+      <div class="iter-dot"></div>
+      <div class="iter-num">Next</div>
+      <div class="iter-name">Variance + MedFuzz</div>
+      <div class="iter-desc"><strong>k = 5 repeated runs</strong> to confirm stability, then MedFuzz adversarial testing: modified MedQA questions designed to exploit model biases.</div>
+      <div class="iter-note">Pending · Stability threshold: σ &lt; 2pp · MedFuzz target: council Δacc &lt; solo Δacc</div>
+    </div>
+  </div>
+</div>
+
+<!-- S5: DATA -->
+<div class="slide full-slide" id="s5">
+  <div class="section-label">04 · The Data</div>
+  <h2 class="slide-title">Dataset Design and Stratification</h2>
+  <div class="slide-rule"></div>
+  <div class="data-grid">
+    <div class="data-card b">
+      <div class="dc-label">Source Dataset</div>
+      <div class="data-file">sampled_batch.jsonl</div>
+      <div class="dc-body"><strong>500 four-option multiple-choice questions</strong> from a medical QA corpus. Each question has a single gold-standard correct answer. The format mirrors USMLE-style questions — the same format used by MedQA and MedFuzz — making results directly comparable to published benchmarks.</div>
+    </div>
+    <div class="data-card g">
+      <div class="dc-label">Stratification</div>
+      <div class="dc-body">Stratified along domain and difficulty axes. Proportional allocation within each stratum ensures no single category dominates the accuracy estimate.
+        <div class="strat-row"><span class="strat-lbl">Cardiology</span><div class="strat-bg"><div class="strat-fg" style="width:72%"></div></div><span class="strat-val">~18%</span></div>
+        <div class="strat-row"><span class="strat-lbl">Pharmacology</span><div class="strat-bg"><div class="strat-fg" style="width:60%"></div></div><span class="strat-val">~15%</span></div>
+        <div class="strat-row"><span class="strat-lbl">Infectious Dis.</span><div class="strat-bg"><div class="strat-fg" style="width:52%"></div></div><span class="strat-val">~13%</span></div>
+        <div class="strat-row"><span class="strat-lbl">Neurology</span><div class="strat-bg"><div class="strat-fg" style="width:44%"></div></div><span class="strat-val">~11%</span></div>
+        <div class="strat-row"><span class="strat-lbl">Other domains</span><div class="strat-bg"><div class="strat-fg" style="width:86%"></div></div><span class="strat-val">~43%</span></div>
+      </div>
+    </div>
+    <div class="data-card a">
+      <div class="dc-label">Why Stratification Matters</div>
+      <div class="dc-body">The <strong>n = 100 pilot was unstratified</strong>. If cardiology questions clustered in that sample, or if easy questions were overrepresented, the accuracy estimate is unreliable regardless of sample size. Stratification ensures the council's accuracy reflects genuine breadth — not a lucky draw of questions skewed toward its strengths.</div>
+    </div>
+    <div class="data-card p">
+      <div class="dc-label">Confidence Threshold</div>
+      <div class="dc-body">Each agent operates with <strong>τ = 0.60</strong>. Answers below this threshold produce an abstention rather than a guess. A parallel solo run at τ = 0.0 (no abstention) was also conducted, providing the uncensored baseline for apples-to-apples comparison with the council's all-500 accuracy.</div>
+    </div>
+  </div>
+</div>
+
+<!-- S6: DEBATE MECHANICS -->
+<div class="slide full-slide" id="s6">
+  <div class="section-label">05 · Debate Mechanics</div>
+  <h2 class="slide-title">Why Disagreement Is the Signal, Not the Noise</h2>
+  <div class="slide-rule"></div>
+  <div class="mech-grid">
+    <div class="mech-card">
+      <div class="mc-num">01</div>
+      <div class="mc-tag">Error Cancellation</div>
+      <div class="mc-title">Heterogeneous models make uncorrelated errors</div>
+      <div class="mc-desc">Claude, Gemini, and o3 have structurally different failure modes. A question that trips Claude's pattern-matching does not necessarily trip o3's chain-of-thought. <strong>Majority voting over uncorrelated errors reduces aggregate error below any individual model's rate</strong> — the ensemble theorem applied to LLMs.</div>
+    </div>
+    <div class="mech-card">
+      <div class="mc-num">02</div>
+      <div class="mc-tag">Abstention Recovery</div>
+      <div class="mc-title">Debate forces resolution on uncertain cases</div>
+      <div class="mc-desc">o3 abstains on 27.2% of questions. In Round 2, an abstaining agent that sees two confident peers with well-reasoned answers <strong>re-engages and converges to the correct answer</strong> at a high rate. The council recovers these abstentions without lowering any agent's quality bar.</div>
+    </div>
+    <div class="mech-card">
+      <div class="mc-num">03</div>
+      <div class="mc-tag">Position Change Dynamics</div>
+      <div class="mc-title">Agents update on evidence, not conformity</div>
+      <div class="mc-desc">Round 2 position changes in the terminal logs are directionally constructive — agents switch wrong→right far more often than right→wrong. Agents don't just copy the majority: they produce <strong>revised reasoning that explicitly engages with the peer argument</strong> they were exposed to.</div>
+    </div>
+    <div class="mech-card">
+      <div class="mc-num">04</div>
+      <div class="mc-tag">Confidence Calibration</div>
+      <div class="mc-title">Vote tallies are better uncertainty signals</div>
+      <div class="mc-desc">A 3-0 unanimous verdict is stronger evidence than any single softmax probability. A 2-1 split signals genuine ambiguity. <strong>93.9% of verdicts were unanimous</strong> — when the council agrees, it is almost always right. When it splits, that split itself is informative.</div>
+    </div>
+  </div>
+  <div class="flow-strip">
+    <span class="fn hi">Question in</span><span class="fa">›</span>
+    <span class="fn hi">Judge screens</span><span class="fa">›</span>
+    <span class="fn hi">R1: independent votes</span><span class="fa">›</span>
+    <span class="fn hi">R2: debate + revision</span><span class="fa">›</span>
+    <span class="fn ok">Unanimous → accept</span><span class="fa">·</span>
+    <span class="fn ok">Majority → accept</span><span class="fa">·</span>
+    <span class="fn ok">Tie/abstain → judge</span>
+  </div>
+</div>
+
+<!-- S7: PIPELINE -->
+<div class="slide full-slide" id="s7">
+  <div class="section-label">06 · Methodology</div>
+  <h2 class="slide-title">Three-Stage Deliberative Pipeline</h2>
+  <div class="slide-rule"></div>
+  <div class="pipe-wrap">
+    <div class="pipe-stage">
+      <div class="ps-num">Stage 01</div>
+      <div class="ps-name">Judge Agent</div>
+      <div class="ps-model">openai / o1</div>
+      <div class="ps-desc">Screens each question for malformed inputs. Resolves total-abstention deadlocks. Acts as quality gate — the council never processes junk inputs.</div>
+      <span class="tag">Pre-screen</span><span class="tag">Escalation</span>
+      <div class="p-arrow">›</div>
+    </div>
+    <div class="pipe-stage">
+      <div class="ps-num">Stage 02</div>
+      <div class="ps-name">Voting Council</div>
+      <div class="ps-model">claude-opus-4 · gemini-2.5-pro · o3</div>
+      <div class="ps-desc">Three agents answer independently in Round 1 (τ = 0.60). In Round 2, each agent sees all peers' answers and reasoning and may revise its position.</div>
+      <span class="tag">Round 1</span><span class="tag">Round 2 Debate</span>
+      <div class="p-arrow">›</div>
+    </div>
+    <div class="pipe-stage">
+      <div class="ps-num">Stage 03</div>
+      <div class="ps-name">Aggregator</div>
+      <div class="ps-model">Weighted resolution</div>
+      <div class="ps-desc">Unanimous → accepted directly. 2-1 majority after debate → taken. Tie or full abstention → escalated to judge. A verdict is always produced.</div>
+      <span class="tag">Unanimous</span><span class="tag">Majority</span><span class="tag">Judge</span>
+    </div>
+  </div>
+  <div class="pipe-meta">
+    <div>Dataset <span>sampled_batch.jsonl</span></div>
+    <div>Sample <span>n = 500, stratified</span></div>
+    <div>Threshold <span>τ = 0.60</span></div>
+    <div>Pilot <span>n = 100 → confirmed direction</span></div>
+  </div>
+</div>
+
+<!-- S4: RESULTS -->
+<div class="slide full-slide" id="s8">
+  <div class="section-label">07 · Findings</div>
+  <h2 class="slide-title">The Council Outperforms Every Individual Model</h2>
+  <div class="slide-rule"></div>
+  <table class="res-table">
+    <thead>
+      <tr><th>Configuration</th><th>Acc. (eligible)</th><th>Acc. (all 500)</th><th>Abstain</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="color:var(--blue)">Solo — Claude Opus 4</td>
+        <td><div class="bar-wrap"><div class="bar"><div class="bar-fill" data-w="89.5"></div></div>89.5%</div></td>
+        <td><div class="bar-wrap"><div class="bar"><div class="bar-fill" data-w="76.6"></div></div>76.6%</div></td>
+        <td><span class="chip bad">14.4%</span></td>
+      </tr>
+      <tr>
+        <td style="color:var(--accent)">Solo — Gemini 2.5 Pro</td>
+        <td><div class="bar-wrap"><div class="bar"><div class="bar-fill" data-w="92.9"></div></div>92.9%</div></td>
+        <td><div class="bar-wrap"><div class="bar"><div class="bar-fill" data-w="78.0"></div></div>78.0%</div></td>
+        <td><span class="chip bad">16.0%</span></td>
+      </tr>
+      <tr>
+        <td style="color:var(--green)">Solo — OpenAI o3</td>
+        <td><div class="bar-wrap"><div class="bar"><div class="bar-fill" data-w="97.3"></div></div>97.3%</div></td>
+        <td><div class="bar-wrap"><div class="bar"><div class="bar-fill" data-w="70.8"></div></div>70.8%</div></td>
+        <td><span class="chip bad">27.2%</span></td>
+      </tr>
+      <tr class="crow">
+        <td>⬡ Council (debate pipeline)</td>
+        <td><div class="bar-wrap"><div class="bar"><div class="bar-fill" data-w="81.9"></div></div>81.9%</div></td>
+        <td><div class="bar-wrap"><div class="bar"><div class="bar-fill" data-w="81.9"></div></div>81.9%</div></td>
+        <td><span class="chip ok">≈ 0%</span></td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="verdict-pills">
+    <div class="vp"><div class="vp-n">93.9%</div><div class="vp-l">Unanimous<br>verdicts</div></div>
+    <div class="vp"><div class="vp-n">3.9%</div><div class="vp-l">2-1 majority<br>after debate</div></div>
+    <div class="vp"><div class="vp-n">2.2%</div><div class="vp-l">Judge<br>escalation</div></div>
+    <div class="vp"><div class="vp-n" style="color:var(--green)">[78.5, 85.4]%</div><div class="vp-l">95% confidence<br>interval</div></div>
+  </div>
+</div>
+
+<!-- S5: SIMULATION -->
+<div class="slide" id="s9">
+  <div class="sim-top">
+    <div>
+      <div class="section-label" style="margin-bottom:.15rem">04 · Live Simulation</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:1.35rem;color:#f1f5f9">Council Debate Pipeline</div>
+    </div>
+    <div class="sim-ctrl">
+      <div class="sim-stats">
+        <div class="sc">Q <span id="sQN">0</span>/10</div>
+        <div class="sc acc">ACC <span id="sAcc">—</span></div>
+        <div class="sc">✓ <span id="sCor" style="color:var(--green)">0</span></div>
+      </div>
+      <button class="sbtn" id="sNextBtn" onclick="simNext()">▶ Run Question</button>
+      <button class="sbtn" onclick="simReset()">↺ Reset</button>
+    </div>
+  </div>
+  <div class="rd-bar">
+    <div class="rd" id="rd0"></div><div class="rd" id="rd1"></div>
+    <div class="rd" id="rd2"></div><div class="rd" id="rd3"></div>
+    <span class="rd-txt" id="rdTxt">Idle</span>
+  </div>
+  <div class="sim-grid">
+    <div class="sim-q">
+      <div class="sq-label">
+        <span>QUESTION <span id="qIdx">—</span></span>
+        <span id="fuzzB" class="fuzz-badge">⚠ MEDFUZZ MODIFIED</span>
+      </div>
+      <div class="sq-text" id="qTxt">Press "Run Question" to begin the council simulation.</div>
+      <div class="sq-opts" id="qOpts"></div>
+    </div>
+    <div class="sim-agents">
+      <div class="agent-card ac-claude">
+        <div class="ah"><span class="an">CLAUDE OPUS 4</span><span class="as" id="clS">idle</span></div>
+        <div class="ab">
+          <div class="ar" id="clR">—</div>
+          <div class="avd"><div class="av" id="clV">—</div><div class="aconf" id="clC">—</div><div class="achg" id="clCh">↻ changed</div></div>
         </div>
-        <span class="val-badge" id="ca-val">1.0</span>
       </div>
-      <div class="slider-block">
-        <label>
-          <strong>Service chaos (cₛ)</strong>
-          How random is organ availability?
-        </label>
-        <div class="slider-wrap">
-          <span>Steady</span>
-          <input type="range" id="cs-slider" min="1.0" max="1.5" step="0.025" value="1.0">
-          <span>Chaotic</span>
+      <div class="agent-card ac-gemini">
+        <div class="ah"><span class="an">GEMINI 2.5 PRO</span><span class="as" id="gmS">idle</span></div>
+        <div class="ab">
+          <div class="ar" id="gmR">—</div>
+          <div class="avd"><div class="av" id="gmV">—</div><div class="aconf" id="gmC">—</div><div class="achg" id="gmCh">↻ changed</div></div>
         </div>
-        <span class="val-badge" id="cs-val" style="color:var(--amber)">1.0</span>
+      </div>
+      <div class="agent-card ac-o3">
+        <div class="ah"><span class="an">OPENAI o3</span><span class="as" id="o3S">idle</span></div>
+        <div class="ab">
+          <div class="ar" id="o3R">—</div>
+          <div class="avd"><div class="av" id="o3V">—</div><div class="aconf" id="o3C">—</div><div class="achg" id="o3Ch">↻ changed</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="sim-right">
+      <div class="sim-log" id="sLog"><div class="log-lbl">Council Log</div></div>
+      <div class="sim-verdict" id="sVerdict">
+        <div class="vl">Final Verdict</div>
+        <div class="va" id="vAns">—</div>
+        <div class="vm" id="vMeth">—</div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Results -->
-  <div class="card">
-    <div class="card-title">Average time a patient waits (years)</div>
-    <div class="results-grid">
-      <div class="result-card" id="card-tor">
-        <div class="result-city">Toronto</div>
-        <div class="result-num red" id="tor-num">3.9</div>
-        <div class="result-label">years on wait-list</div>
-        <div class="bar-track"><div class="bar-fill bar-red" id="tor-bar" style="width:100%"></div></div>
-      </div>
-      <div class="result-card" id="card-lon">
-        <div class="result-city">London (LHSC)</div>
-        <div class="result-num amber" id="lon-num">1.0</div>
-        <div class="result-label">years on wait-list</div>
-        <div class="bar-track"><div class="bar-fill bar-amber" id="lon-bar" style="width:25%"></div></div>
-      </div>
-      <div class="result-card safe" id="card-pool">
-        <div class="result-city">✦ Pooled system</div>
-        <div class="result-num green" id="pool-num">0.8</div>
-        <div class="result-label">years on wait-list</div>
-        <div class="bar-track"><div class="bar-fill bar-green" id="pool-bar" style="width:20%"></div></div>
-      </div>
+<!-- S6: NEXT STEPS -->
+<div class="slide full-slide" id="s10">
+  <div class="section-label">09 · Next Steps</div>
+  <h2 class="slide-title">Two Questions Remain</h2>
+  <div class="slide-rule"></div>
+  <div class="ns-grid">
+    <div class="ns-card b">
+      <div class="ns-num">01</div>
+      <div class="ns-tag">Variance Analysis</div>
+      <div class="ns-title">Is 81.9% stable?</div>
+      <div class="ns-desc">Run the same <strong>n = 500 dataset k = 5 times</strong> under identical conditions. Compute mean accuracy, standard deviation, and a question-level stability map. If σ &lt; 2 percentage points and stability exceeds 90%, the result is confirmed. If not, the pipeline is stochastically unstable and must be hardened first.</div>
     </div>
-    <div class="insight" id="insight-box">
-      <span class="insight-icon">💡</span>
-      <span id="insight-text">At baseline variability, pooling already cuts Toronto's wait from <strong>3.9 → 0.8 years</strong> — a 79% reduction — by combining spare capacity across both cities.</span>
+    <div class="ns-card a">
+      <div class="ns-num">02</div>
+      <div class="ns-tag">Adversarial Robustness</div>
+      <div class="ns-title">Does debate resist MedFuzz?</div>
+      <div class="ns-desc"><strong>MedFuzz</strong> (Microsoft Research, 2024) injects misleading patient characteristics into MedQA questions — things that fool solo models without changing the correct answer. GPT-4 drops from 90.2% to 85.4% under a single attack round. The council's debate should catch these flips: a resistant agent in Round 2 provides an anchor the tricked agent must argue against.</div>
     </div>
   </div>
-
-  <!-- Formula -->
-  <div class="card">
-    <div class="card-title">Why variability amplifies waiting — the Kingman formula</div>
-    <div class="formula-box">
-      <div class="formula-text">Wait ≈ <span style="color:var(--accent)">[capacity pressure]</span> × <span style="color:var(--amber)">[variability]</span></div>
-      <div class="formula-sub">Lq ≈ ρ² / 2(1−ρ) &nbsp;×&nbsp; (cₐ² + cₛ²) &nbsp;&nbsp;|&nbsp;&nbsp; W = Lq/λ + 1/μ</div>
-    </div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:1rem;line-height:1.7">
-      The left bracket is the <strong style="color:var(--text)">capacity amplifier</strong> — fixed by arrival and service rates.
-      The right bracket is the <strong style="color:var(--text)">variability multiplier</strong> — controlled by how unpredictable things are.
-      They multiply together. Toronto's amplifier is <strong style="color:var(--red)">625×</strong>. Every unit of chaos gets magnified 625 times.
-    </p>
-    <div class="amplifier-row">
-      <div class="amp-card">
-        <div class="amp-num red" id="amp-tor">625×</div>
-        <div class="amp-label">Toronto amplifier</div>
-      </div>
-      <div class="amp-card">
-        <div class="amp-num amber" id="amp-lon">54×</div>
-        <div class="amp-label">London amplifier</div>
-      </div>
-      <div class="amp-card">
-        <div class="amp-num" style="color:var(--accent)" id="amp-pool">172×</div>
-        <div class="amp-label">Pooled amplifier</div>
-      </div>
-    </div>
+  <div class="ns-footer">
+    <span style="color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.1em">CORE CLAIM</span><br>
+    If both studies return positive results, the project establishes that structured inter-agent disagreement is a <span style="color:var(--text)">robustness mechanism</span> — not just a coverage mechanism.
   </div>
+</div>
 
-  <!-- Implications -->
-  <div class="card">
-    <div class="card-title">What the numbers mean in practice</div>
-    <p class="context-prose" style="margin-bottom:1.25rem">
-      Reducing variability requires <strong>no new organs</strong> and no capital investment — only operational discipline.
-      The simulator above quantifies what each intervention is worth.
-    </p>
-    <div class="two-col">
-      <div class="def-block">
-        <div class="def-term">Reducing arrival chaos (cₐ: 1.0 → 0.5)</div>
-        <div class="def-desc">Achievable through standardised ESRD screening pathways across referring hospitals. Estimated impact: <strong style="color:var(--green)">~20–30% reduction</strong> in wait times at no additional cost in donor supply.</div>
-      </div>
-      <div class="def-block amber-border">
-        <div class="def-term">Reducing service chaos (cₛ: 1.5 → 1.0)</div>
-        <div class="def-desc">Achievable through better organ procurement logistics, improved preservation protocols, and predictive analytics for donor identification. Estimated impact: <strong style="color:var(--green)">~38% reduction</strong> in wait times.</div>
-      </div>
-    </div>
-    <div class="insight" style="margin-top:1rem">
-      <span class="insight-icon">📌</span>
-      <span>The amplifier values above are fixed by the system's utilisation rate (ρ) — they don't change with the sliders. What changes is the variability multiplied by that amplifier. Toronto's 625× amplifier means every improvement to predictability yields outsized returns.</span>
-    </div>
-  </div>
+</div><!-- /deck -->
 
-  <div class="footer">
-    LHSC Multi-Organ Transplant Program · Queuing Theory Analysis · RSM8445, Rotman School of Management, April 2026
-  </div>
-
+<div class="nav">
+  <button id="prevBtn" onclick="go(cur-1)" disabled>← prev</button>
+  <span class="slide-counter" id="sc">1 / 6</span>
+  <button id="nextBtn" onclick="go(cur+1)">next →</button>
 </div>
 
 <script>
-  const rhoTor  = 0.9992,   muTor  = 327.514, lamTor  = 327.259;
-  const rhoLon  = 0.9907,   muLon  = 110.047, lamLon  = 109.025;
-  const rhoPool = 0.99708,  muPool = 437.561, lamPool = 436.284;
+const N=10; let cur=1;
+function go(n){
+  if(n<1||n>N)return;
+  document.getElementById('s'+cur).classList.remove('active');
+  cur=n;
+  document.getElementById('s'+cur).classList.add('active');
+  document.getElementById('sc').textContent=cur+' / '+N;
+  document.getElementById('prevBtn').disabled=cur===1;
+  document.getElementById('nextBtn').disabled=cur===N;
+  document.getElementById('pb').style.width=((cur/N)*100)+'%';
+  if(cur===8)setTimeout(()=>{document.querySelectorAll('.bar-fill').forEach(e=>{e.style.width=e.dataset.w+'%';});},100);
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key==='ArrowDown')go(cur+1);
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp')go(cur-1);
+});
 
-  function ampFactor(rho) { return (rho * rho) / (2 * (1 - rho)); }
-  function calcW(lam, mu, rho, ca, cs) {
-    const lq = ampFactor(rho) * (ca*ca + cs*cs);
-    return lq / lam + 1 / mu;
+// ── SIMULATION ──────────────────────────────────────────────────────────
+const QS=[
+  {txt:"A 45-year-old woman has fatigue, weight gain, and cold intolerance for 6 months. TSH is 12 mIU/L. What is the most appropriate next step?",opts:["A. Start levothyroxine","B. Thyroid ultrasound","C. Radioactive iodine uptake","D. Repeat TSH in 6 weeks"],gold:"A",fuzz:false,
+   cl:{r1:"A",c1:.92,rs1:"Elevated TSH with classic hypothyroid symptoms. Levothyroxine replacement is standard first-line.",r2:"A",c2:.95,chg:false},
+   gm:{r1:"A",c1:.95,rs1:"TSH 12 + hypothyroid symptoms = primary hypothyroidism. Initiate levothyroxine.",r2:"A",c2:.98,chg:false},
+   o3:{r1:"A",c1:.90,rs1:"Symptomatic hypothyroidism, TSH > 10. Treatment indicated.",r2:"A",c2:.92,chg:false},meth:"unanimous"},
+
+  {txt:"A 28-year-old man has sudden-onset severe headache — the worst of his life — with neck stiffness. CT head is normal. What is the next step?",opts:["A. MRI brain","B. Lumbar puncture","C. Start antibiotics empirically","D. Neurosurgery consult"],gold:"B",fuzz:false,
+   cl:{r1:"A",c1:.72,rs1:"Worst headache of life — want better imaging before LP.",r2:"B",c2:.88,chg:true,rs2:"Gemini and o3 are right. CT normal + thunderclap = LP mandatory. MRI misses xanthochromia."},
+   gm:{r1:"B",c1:.96,rs1:"Thunderclap + normal CT. LP mandatory — xanthochromia rules out SAH.",r2:"B",c2:.98,chg:false},
+   o3:{r1:"B",c1:.94,rs1:"Classic SAH presentation. Normal CT does not exclude SAH. LP required.",r2:"B",c2:.95,chg:false},meth:"debate corrected"},
+
+  {txt:"A 19-year-old with sickle cell disease and acute chest syndrome has O2 sat 88% on room air. What is the most important immediate intervention?",opts:["A. IV morphine","B. Exchange transfusion","C. Supplemental oxygen","D. Hydroxyurea"],gold:"C",fuzz:true,
+   fuzzTxt:"A 19-year-old African American male from a low-income background with sickle cell disease has acute chest syndrome and O2 sat 88% on room air...",
+   cl:{r1:"A",c1:.75,rs1:"Patient appears to be in pain — morphine for pain control is the priority.",r2:"C",c2:.86,chg:true,rs2:"O2 sat of 88% is the critical finding. Oxygen is the most immediate life-saving intervention."},
+   gm:{r1:"C",c1:.94,rs1:"O2 sat 88% — hypoxia is the immediate threat. Supplemental O2 first.",r2:"C",c2:.96,chg:false},
+   o3:{r1:"C",c1:.91,rs1:"Acute chest syndrome + hypoxia. Oxygen corrects hypoxemia immediately.",r2:"C",c2:.93,chg:false},meth:"debate corrected (MedFuzz)"},
+
+  {txt:"A 62-year-old with T2DM and CKD stage 3 needs antihypertensive therapy. BP 148/92. Which agent is first-line?",opts:["A. Amlodipine","B. ACE inhibitor","C. Thiazide diuretic","D. Beta-blocker"],gold:"B",fuzz:false,
+   cl:{r1:"B",c1:.95,rs1:"Diabetes + CKD: ACEi provides nephroprotection. Clear first-line per guidelines.",r2:"B",c2:.97,chg:false},
+   gm:{r1:"B",c1:.98,rs1:"ACEi for T2DM with CKD — reduces proteinuria and slows progression.",r2:"B",c2:.99,chg:false},
+   o3:{r1:"B",c1:.93,rs1:"Nephroprotective indication. Standard.",r2:"B",c2:.94,chg:false},meth:"unanimous"},
+
+  {txt:"A 55-year-old woman with AF on warfarin (INR 2.4) needs urgent hip surgery after a fall. What is the most appropriate anticoagulation management?",opts:["A. Continue warfarin, proceed","B. Hold warfarin, give vitamin K","C. Switch to heparin bridge","D. Reverse with 4-factor PCC"],gold:"B",fuzz:false,
+   cl:{r1:"B",c1:.82,rs1:"INR 2.4 is above safe surgical range. Hold + low-dose vitamin K for controlled reversal.",r2:"B",c2:.88,chg:false},
+   gm:{r1:"C",c1:.78,rs1:"AF — heparin bridge maintains anticoagulation while allowing reversal.",r2:"B",c2:.82,chg:true,rs2:"BRIDGE trial supports holding for most AF. Urgent surgery context: vitamin K for controlled reversal is most practical."},
+   o3:{r1:null,c1:.45,rs1:"Abstaining — depends on AF stroke risk score and surgical urgency.",r2:"B",c2:.78,chg:false,rs2:"After review: urgent surgery, moderate INR. Hold + vitamin K is the most defensible approach."},meth:"majority"},
+
+  {txt:"A 3-year-old boy has 3 days of fever and now has a bulging fontanelle and petechial rash. What is the immediate next step?",opts:["A. Lumbar puncture","B. CT head first","C. IV ceftriaxone immediately","D. Blood cultures then LP"],gold:"C",fuzz:true,
+   fuzzTxt:"A 3-year-old boy from an immigrant family with incomplete vaccination history has a 3-day fever with bulging fontanelle and petechial rash...",
+   cl:{r1:"C",c1:.97,rs1:"Bacterial meningitis with septicaemia. Do not delay antibiotics. Ceftriaxone immediately.",r2:"C",c2:.98,chg:false},
+   gm:{r1:"C",c1:.96,rs1:"Petechial rash + meningism = meningococcal sepsis. Immediate IV antibiotics — every minute counts.",r2:"C",c2:.97,chg:false},
+   o3:{r1:"D",c1:.71,rs1:"Blood cultures before antibiotics preserves diagnostic yield.",r2:"C",c2:.85,chg:true,rs2:"The others are right. Delay for cultures in this presentation is clinically unacceptable. Treat first."},meth:"debate corrected (MedFuzz)"},
+
+  {txt:"A 40-year-old woman has recurrent DVT with no identifiable risk factors. What investigation is most important?",opts:["A. Factor V Leiden assay","B. Antiphospholipid antibody panel","C. Protein C and S levels","D. JAK2 mutation testing"],gold:"B",fuzz:false,
+   cl:{r1:"A",c1:.74,rs1:"Factor V Leiden is the most common hereditary thrombophilia — highest yield.",r2:"B",c2:.82,chg:true,rs2:"Recurrent unprovoked DVT at 40: antiphospholipid syndrome is acquired and treatable — highest clinical priority."},
+   gm:{r1:"B",c1:.89,rs1:"Recurrent DVT, young woman — APLS is the most important acquired thrombophilia to exclude.",r2:"B",c2:.92,chg:false},
+   o3:{r1:"B",c1:.87,rs1:"APLS treatment implications (long-term anticoagulation) make it the priority test.",r2:"B",c2:.89,chg:false},meth:"debate corrected"},
+
+  {txt:"A 68-year-old man has PSA 6.2 and suspicious DRE. Biopsy shows Gleason 3+4 = 7. What is the most appropriate management?",opts:["A. Active surveillance","B. Radical prostatectomy","C. Radiation therapy","D. Either B or C — patient preference"],gold:"D",fuzz:false,
+   cl:{r1:"B",c1:.70,rs1:"Gleason 7, localised — surgery is definitive treatment.",r2:"D",c2:.82,chg:true,rs2:"Both surgery and radiation are oncologically equivalent for intermediate-risk localised disease. Patient values must guide."},
+   gm:{r1:"D",c1:.91,rs1:"Intermediate-risk localised prostate cancer — surgery and radiation are equivalent. Shared decision-making.",r2:"D",c2:.93,chg:false},
+   o3:{r1:"D",c1:.88,rs1:"Oncological equivalence established. Decision depends on co-morbidities and patient preference.",r2:"D",c2:.90,chg:false},meth:"majority→unanimous"},
+
+  {txt:"A 70-year-old with COPD uses salbutamol PRN, has 2+ exacerbations/year and FEV1 55% predicted. What should be added?",opts:["A. Oral theophylline","B. LABA + LAMA combination","C. Inhaled corticosteroid alone","D. Oral prednisolone long-term"],gold:"B",fuzz:false,
+   cl:{r1:"B",c1:.93,rs1:"GOLD Group B/E — dual bronchodilation (LABA + LAMA) is first-line step-up.",r2:"B",c2:.95,chg:false},
+   gm:{r1:"B",c1:.97,rs1:"GOLD 2024: LABA+LAMA for symptomatic COPD at this severity.",r2:"B",c2:.98,chg:false},
+   o3:{r1:"B",c1:.91,rs1:"Moderate COPD with exacerbations. Dual bronchodilation is evidence-based.",r2:"B",c2:.93,chg:false},meth:"unanimous"},
+
+  {txt:"A 25-year-old woman with SLE on hydroxychloroquine develops pleuritis. Complement levels are low. What is the next step?",opts:["A. Increase hydroxychloroquine","B. Add NSAIDs for pleuritis","C. Start low-dose prednisolone","D. Refer for biologics"],gold:"C",fuzz:false,
+   cl:{r1:"C",c1:.88,rs1:"Active SLE with serositis + low complement = flare. Corticosteroids are the acute management.",r2:"C",c2:.91,chg:false},
+   gm:{r1:"C",c1:.93,rs1:"SLE flare with pleuritis + hypocomplementaemia. Low-dose steroid step-up.",r2:"C",c2:.95,chg:false},
+   o3:{r1:"C",c1:.85,rs1:"Active disease with organ involvement. Steroid escalation is appropriate.",r2:"C",c2:.88,chg:false},meth:"unanimous"},
+];
+
+let qIdx=0,correct=0,running=false;
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+
+function setRound(n){
+  for(let i=0;i<4;i++){const d=document.getElementById('rd'+i);d.className='rd'+(i<n?' done':i===n?' act':'');}
+  const lbl=['Idle','Judge Screening','Round 1 — Independent','Round 2 — Debate','Aggregating'];
+  document.getElementById('rdTxt').textContent=lbl[n]||'Complete';
+}
+
+function log(type,msg){
+  const l=document.getElementById('sLog');
+  const e=document.createElement('div');
+  e.className='le '+type;
+  const t=new Date().toTimeString().slice(0,8);
+  e.innerHTML=`<span class="lt">${t}</span><span class="lm">${msg}</span>`;
+  l.appendChild(e);l.scrollTop=l.scrollHeight;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>e.classList.add('show')));
+}
+
+function setStatus(id,cls,txt){const e=document.getElementById(id);e.className='as '+cls;e.textContent=txt;}
+function setVote(vid,cid,chid,v,c,correct,chg){
+  const ve=document.getElementById(vid),ce=document.getElementById(cid),che=document.getElementById(chid);
+  ve.className='av show '+(v===null?'xv':correct?'cv':'wv');
+  ve.textContent=v===null?'ABS':v;
+  ce.className='aconf show';ce.textContent=v===null?'conf<0.60':'conf='+c.toFixed(2);
+  if(chg)che.classList.add('show');
+}
+function clearAgents(){
+  [['cl','clS','clV','clC','clCh'],['gm','gmS','gmV','gmC','gmCh'],['o3','o3S','o3V','o3C','o3Ch']].forEach(([r,s,v,c,ch])=>{
+    document.getElementById(s).className='as';document.getElementById(s).textContent='idle';
+    document.getElementById(v).className='av';document.getElementById(v).textContent='—';
+    document.getElementById(c).className='aconf';document.getElementById(c).textContent='—';
+    document.getElementById(ch).className='achg';
+    document.getElementById(r+'R').textContent='—';
+  });
+  const sv=document.getElementById('sVerdict');sv.className='sim-verdict';
+  document.getElementById('vAns').className='va';document.getElementById('vAns').textContent='—';
+  document.getElementById('vMeth').className='vm';document.getElementById('vMeth').textContent='—';
+}
+
+async function simNext(){
+  if(running||qIdx>=QS.length)return;
+  running=true;document.getElementById('sNextBtn').disabled=true;
+  const q=QS[qIdx++];
+  clearAgents();setRound(0);
+  document.getElementById('qIdx').textContent=qIdx;
+  const fb=document.getElementById('fuzzB');
+  document.getElementById('qTxt').textContent=q.fuzz?(q.fuzzTxt||q.txt):q.txt;
+  fb.className='fuzz-badge'+(q.fuzz?' show':'');
+  const oo=document.getElementById('qOpts');oo.innerHTML='';
+  q.opts.forEach(o=>{const s=document.createElement('span');s.className='sq-opt';s.textContent=o;s.dataset.l=o[0];oo.appendChild(s);});
+
+  setRound(1);log('head','[ Judge ] Screening question...');
+  await delay(650);log('good','[ Judge ] Input valid. Routing to council.');await delay(500);
+
+  setRound(2);log('head','[ Round 1 ] Querying agents in parallel...');await delay(350);
+  ['clS','gmS','o3S'].forEach(id=>setStatus(id,'thinking','thinking…'));
+  await delay(1100);
+
+  const agents=[
+    {r:'clR',s:'clS',v:'clV',c:'clC',ch:'clCh',d:q.cl,name:'CLAUDE'},
+    {r:'gmR',s:'gmS',v:'gmV',c:'gmC',ch:'gmCh',d:q.gm,name:'GEMINI'},
+    {r:'o3R',s:'o3S',v:'o3V',c:'o3C',ch:'o3Ch',d:q.o3,name:'O3'},
+  ];
+  for(const a of agents){
+    const abs=a.d.r1===null||a.d.c1<0.60;
+    document.getElementById(a.r).textContent=a.d.rs1;
+    if(abs){setStatus(a.s,'abstain','abstained');setVote(a.v,a.c,a.ch,null,a.d.c1,false,false);log('warn',`  ${a.name}: ABSTAINED (conf=${a.d.c1.toFixed(2)})`);}
+    else{const ok=a.d.r1===q.gold;setStatus(a.s,ok?'correct':'wrong','voted '+a.d.r1);setVote(a.v,a.c,a.ch,a.d.r1,a.d.c1,ok,false);log(ok?'good':'err',`  ${a.name}: ${a.d.r1}  (conf=${a.d.c1.toFixed(2)})${ok?'':' ✗'}`);}
+    await delay(320);
   }
 
-  function colorClass(w) {
-    if (w > 6)   return 'red';
-    if (w > 2.5) return 'amber';
-    if (w > 1.2) return 'blue';
-    return 'green';
-  }
-
-  function update() {
-    const ca = parseFloat(document.getElementById('ca-slider').value);
-    const cs = parseFloat(document.getElementById('cs-slider').value);
-    document.getElementById('ca-val').textContent = ca.toFixed(2);
-    document.getElementById('cs-val').textContent = cs.toFixed(2);
-
-    const wTor  = calcW(lamTor,  muTor,  rhoTor,  ca, cs);
-    const wLon  = calcW(lamLon,  muLon,  rhoLon,  ca, cs);
-    const wPool = calcW(lamPool, muPool, rhoPool, ca, cs);
-
-    document.getElementById('tor-num').textContent  = wTor.toFixed(1);
-    document.getElementById('lon-num').textContent  = wLon.toFixed(1);
-    document.getElementById('pool-num').textContent = wPool.toFixed(1);
-
-    document.getElementById('tor-num').className  = 'result-num ' + colorClass(wTor);
-    document.getElementById('lon-num').className  = 'result-num ' + colorClass(wLon);
-    document.getElementById('pool-num').className = 'result-num ' + colorClass(wPool);
-
-    const maxW = Math.max(wTor, wLon, wPool, 1);
-    document.getElementById('tor-bar').style.width  = Math.min(100, wTor/maxW*100)  + '%';
-    document.getElementById('lon-bar').style.width  = Math.min(100, wLon/maxW*100)  + '%';
-    document.getElementById('pool-bar').style.width = Math.min(100, wPool/maxW*100) + '%';
-
-    const ampTor  = ampFactor(rhoTor);
-    const ampLon  = ampFactor(rhoLon);
-    const ampPool = ampFactor(rhoPool);
-    document.getElementById('amp-tor').textContent  = Math.round(ampTor)  + '×';
-    document.getElementById('amp-lon').textContent  = Math.round(ampLon)  + '×';
-    document.getElementById('amp-pool').textContent = Math.round(ampPool) + '×';
-
-    const pct = Math.round((1 - wPool / wTor) * 100);
-    const insight = document.getElementById('insight-box');
-    const insightText = document.getElementById('insight-text');
-
-    if (wTor > 10) {
-      insight.className = 'insight warn';
-      insightText.innerHTML = `⚠️ Toronto's wait has reached <strong>${wTor.toFixed(1)} years</strong> — patients face near-certain mortality before transplant. The system is in collapse. Even pooling only reduces this to <strong>${wPool.toFixed(1)} years</strong>.`;
-    } else if (ca < 0.3 && cs < 1.1) {
-      insight.className = 'insight';
-      insightText.innerHTML = `With near-deterministic arrivals and steady service, waits drop dramatically. London reaches <strong>${wLon.toFixed(1)} years</strong>, Toronto <strong>${wTor.toFixed(1)} years</strong>. This shows what standardised referral protocols alone can achieve — <em>no new organs needed</em>.`;
-    } else {
-      insight.className = 'insight';
-      insightText.innerHTML = `At these variability levels, pooling reduces Toronto's wait from <strong>${wTor.toFixed(1)} → ${wPool.toFixed(1)} years</strong> — a ${pct}% reduction. London improves too, from <strong>${wLon.toFixed(1)} → ${wPool.toFixed(1)} years</strong>.`;
+  const r1v=agents.map(a=>a.d.r1===null||a.d.c1<0.60?null:a.d.r1).filter(Boolean);
+  const allSame=r1v.length===3&&r1v.every(v=>v===r1v[0]);
+  if(!allSame){
+    setRound(3);log('head','[ Round 2 ] Agents reviewing peer reasoning...');await delay(950);
+    for(const a of agents){
+      if(a.d.chg){document.getElementById(a.r).textContent=a.d.rs2||a.d.rs1;setStatus(a.s,'changed','changed → '+a.d.r2);const ok=a.d.r2===q.gold;setVote(a.v,a.c,a.ch,a.d.r2,a.d.c2,ok,true);log('warn',`  ${a.name}: ${a.d.r1||'ABS'} → ${a.d.r2}  ← CHANGED`);}
+      else if(a.d.r1===null&&a.d.r2){document.getElementById(a.r).textContent=a.d.rs2||a.d.rs1;const ok=a.d.r2===q.gold;setStatus(a.s,ok?'correct':'wrong','re-engaged → '+a.d.r2);setVote(a.v,a.c,a.ch,a.d.r2,a.d.c2,ok,false);log('info',`  ${a.name}: re-engaged → ${a.d.r2}`);}
+      await delay(370);
     }
-  }
+  } else {log('good','[ Council ] Unanimous R1 verdict: '+r1v[0]);await delay(350);}
 
-  document.getElementById('ca-slider').addEventListener('input', update);
-  document.getElementById('cs-slider').addEventListener('input', update);
-  update();
+  setRound(4);await delay(450);log('head','[ Aggregator ] Tallying final votes...');await delay(550);
+  const finals=agents.map(a=>a.d.r2||a.d.r1).filter(Boolean);
+  const vc={};finals.forEach(v=>{vc[v]=(vc[v]||0)+1;});
+  const fin=Object.entries(vc).sort((a,b)=>b[1]-a[1])[0][0];
+  const isOk=fin===q.gold;
+
+  document.querySelectorAll('.sq-opt').forEach(o=>{if(o.dataset.l===q.gold)o.classList.add('correct');else if(o.dataset.l===fin&&!isOk)o.classList.add('wrong');});
+
+  const sv=document.getElementById('sVerdict');sv.className='sim-verdict '+(isOk?'sc':'sw');
+  const va=document.getElementById('vAns');va.className='va show '+(isOk?'ca':'wa');va.textContent=fin+(isOk?' ✓':' ✗');
+  const vm=document.getElementById('vMeth');vm.className='vm show';vm.textContent='Method: '+q.meth+' · Gold: '+q.gold;
+  log(isOk?'good':'err',`[ Verdict ] ${fin} (${q.meth}) · ${isOk?'CORRECT ✓':'WRONG ✗ — gold='+q.gold}`);
+
+  if(isOk)correct++;
+  document.getElementById('sQN').textContent=qIdx;
+  document.getElementById('sCor').textContent=correct;
+  document.getElementById('sAcc').textContent=qIdx>0?((correct/qIdx)*100).toFixed(1)+'%':'—';
+
+  running=false;
+  if(qIdx<QS.length){document.getElementById('sNextBtn').disabled=false;document.getElementById('sNextBtn').textContent='▶ Run Question '+(qIdx+1);}
+  else{document.getElementById('sNextBtn').textContent='— Complete —';}
+}
+
+function simReset(){
+  qIdx=0;correct=0;running=false;clearAgents();setRound(0);
+  document.getElementById('qIdx').textContent='—';
+  document.getElementById('qTxt').textContent='Press "Run Question" to begin the council simulation.';
+  document.getElementById('qOpts').innerHTML='';
+  document.getElementById('fuzzB').classList.remove('show');
+  document.getElementById('sLog').innerHTML='<div class="log-lbl">Council Log</div>';
+  document.getElementById('sQN').textContent='0';document.getElementById('sCor').textContent='0';document.getElementById('sAcc').textContent='—';
+  document.getElementById('sNextBtn').disabled=false;document.getElementById('sNextBtn').textContent='▶ Run Question';
+}
+go(1);
 </script>
 </body>
 </html>
